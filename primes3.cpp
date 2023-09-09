@@ -47,7 +47,7 @@ int main() {
     cout << "-----------------------------------------------\n";
     cout << "Ingrese el valor del exponente para base 10: ";
 
-    //Lectura desde stdin de un valor según el tipo de la variable destino
+    // Lectura desde stdin de un valor según el tipo de la variable destino
     cin >> exponente;
 
     cout << "Ingrese el numero de threads: ";
@@ -55,35 +55,39 @@ int main() {
 
     long limit = pow(10, exponente);
 
-    long i = 0;
     int rc;
 
     // Definición del objeto pthread
     pthread_t threadID[numThreads];
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
     // Contador de inicio en ticks de reloj
     start_t = clock();
 
     // Calcula cuántos números manejará cada hilo
-    long numbersPerThread = limit / numThreads;
-    long remainder = limit % numThreads;
+    long numPorThread = limit / numThreads;
+    long sobrante = limit % numThreads;
+    long posi = 0;
+
+    ThreadData threadData[numThreads];
 
     for (int j = 0; j < numThreads; j++) {
-        ThreadData threadData;
-        threadData.start = i;
-        threadData.end = i + numbersPerThread + (j < remainder ? 1 : 0);
+        threadData[j].start = posi;
+        threadData[j].end = posi + numPorThread + (j < sobrante ? 1 : 0);
 
- 		
-        rc = pthread_create(&threadID[j], NULL, primeTest, &threadData);
-		
-     	cout << "Buscando primos entre " << i << " y " << threadData.end - 1 << "...";
+        rc = pthread_create(&threadID[j], &attr, primeTest, &threadData[j]);
+
+        cout << "Buscando primos entre " << threadData[j].start << " y " << threadData[j].end - 1 << "...";
         cout << endl;
 
         if (rc) {
             cout << "No se pudo crear el hilo " << j << endl;
             exit(-1);
         }
-        i = threadData.end;
+
+        posi = threadData[j].end;
     }
 
     for (int j = 0; j < numThreads; j++) {
@@ -105,11 +109,11 @@ int main() {
 
 // Implementación de la función que se ejecutará en cada hilo
 void *primeTest(void *threadDataPtr) {
-    ThreadData *threadData = static_cast<ThreadData *>(threadDataPtr);
+    ThreadData *threadData = (ThreadData *)(threadDataPtr);
 
     for (long i = threadData->start; i < threadData->end; i++) {
         if (isPrime(i)) {
-            cout << i << " from thread num: " << pthread_self() << endl;
+            cout << i << " from thread num: " << pthread_self() << "numeros "<<threadData->start <<threadData->end<<endl;
         }
     }
 
